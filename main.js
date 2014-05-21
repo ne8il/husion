@@ -1,6 +1,36 @@
 var hs = {};
 
+jQuery.fn.reverse = function() {
+    return this.pushStack(this.get().reverse(), arguments);
+};
+
+//http://www.sitepoint.com/javascript-generate-lighter-darker-color/
+function ColorLuminance(hex, lum) {
+
+	// validate hex string
+	hex = String(hex).replace(/[^0-9a-f]/gi, '');
+	if (hex.length < 6) {
+		hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+	}
+	lum = lum || 0;
+
+	// convert to decimal and change luminosity
+	var rgb = "#", c, i;
+	for (i = 0; i < 3; i++) {
+		c = parseInt(hex.substr(i*2,2), 16);
+		c = Math.round(Math.min(Math.max(0, c + (c * lum)), 255)).toString(16);
+		rgb += ("00"+c).substr(c.length);
+	}
+
+	return rgb;
+}
+
 (function(){
+
+  var emptyColor = {
+    'name' : null,
+    'hue' : '#333'
+  }
 
   var colors = {
     'red' : {
@@ -47,17 +77,15 @@ var hs = {};
     }
   };
 
-  var colorArray = [];
+  var colorArray = _.flatten(_.map(colors, function(value, key){
+    value = _.extend(value, {'name' : key});
 
-  _.each(colors, function(value, key){
     if(value.type == 'primary'){
-      colorArray.push.apply(colorArray, _.times(2, _.constant(value)));
+      return _.times(2, _.constant(value));
     }else{
-      colorArray.push(value);
+      return [value];
     }
-  });
-
-
+  }));
 
   var firstSelected = false;
 
@@ -96,8 +124,8 @@ var hs = {};
     $("li").each(function(index){
       $(this)
       .children("div.block")
-      .css('background-color', function(blockIndex){
-        return grid[index][blockIndex]['hue'];
+      .each(function(blockIndex){
+        hs.colorCell($(this), grid[index][blockIndex]);
       });
     });
   }
@@ -114,7 +142,70 @@ var hs = {};
         - $rows.index(two.parent()));
         return oneIndex == twoIndex && rowsApart == 1;
     }
-  }
+  };
+
+  hs.checkRowsForEmptyCells = function(){
+    hs.checkHorizontal();
+    hs.checkVertical();
+
+  };
+
+  hs.checkHorizontal = function(){
+
+  };
+
+  hs.checkVertical = function(){
+
+  };
+
+  hs.fillInRows = function(){
+    /*
+    * starting with bottom row, if any cells are empty
+    * fill them with the color above and empty that cell
+    * if the cell above is empty, don't do anything
+    * we'll catch it on the next go-round
+    */
+    $("li").reverse().each(function(rowIndex){
+      console.log('rowIndex : ' + rowIndex);
+      var actualIndex = NUM_CELLS_PER_ROW - rowIndex - 1;
+      console.log('actualIndex : ' + actualIndex);
+
+
+      $(this)
+      .children("div.block")
+      .each(function(blockIndex){
+        if($(this).attr('data-color') == null){
+          console.log('cell at ' + blockIndex + ' in row ' + actualIndex + ' is blank');
+          if(actualIndex == 0){
+            var newColor = getRandomColor();
+            hs.colorCell($(this), newColor);
+          }else{
+              hs.combine(hs.getCell(actualIndex - 1, blockIndex), $(this));
+          }
+        }
+      })
+    });
+
+  };
+
+  hs.getDarker = function(hex){
+    return ColorLuminance(hex, -.4);
+  };
+
+  hs.colorCell = function($cell, color){
+    $cell
+    .css('background-color', color.hue)
+    .css('border-color', hs.getDarker(color.hue))
+    .attr('data-color', color.name);
+  };
+
+  hs.getCell = function(rowIndex, cellIndex){
+    return $("li").eq(rowIndex).children('div.block').eq(cellIndex);
+  };
+
+  hs.anyCellsAreEmpty = function(){
+    return false;
+  };
 
   hs.handleClick = function(){
     if(!firstSelected){
@@ -129,6 +220,7 @@ var hs = {};
       console.log("are contig : " + areContig);
       if(areContig){
         hs.combine($first, $second);
+        hs.fillInRows();
       }else{
         //if not contig then reset first
         firstSelected = false;
@@ -142,7 +234,43 @@ var hs = {};
   };
 
   hs.combine = function($from, $to){
+    var fromColor = $from.attr('data-color'),
+        toColor = $to.attr('data-color');
 
+    console.log('combining ' + fromColor + ' to ' + toColor);
+    if(fromColor == null){
+
+    }else if(toColor == null){
+        var fromColorObject = colors[fromColor];
+
+        hs.colorCell($to, fromColorObject);
+
+        hs.colorCell($from, emptyColor);
+
+        $("div.block").removeClass('first');
+        firstSelected = false;
+
+    }else{
+      var fromColorObject = colors[fromColor],
+          toColorObject = colors[toColor];
+
+      if(_.has(fromColorObject.combinations, toColor)){
+        console.log('we can match');
+
+        var changeTo = colors[fromColorObject.combinations[toColor]];
+
+        hs.colorCell($to, changeTo);
+
+        hs.colorCell($from, emptyColor);
+
+
+        $("div.block").removeClass('first');
+        firstSelected = false;
+
+      }else {
+        console.warn('we cannot combine');
+      }
+    }
 
   };
 
