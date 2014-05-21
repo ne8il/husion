@@ -3,17 +3,64 @@ var hs = {};
 (function(){
 
   var colors = {
-    'red' : '#F7977A',
-    'blue' : '#8493CA',
-    'green' : '#82CA9D',
-    'yellow' : '#FFF79A',
-    'orange' : '#F9AD81',
-    'purple' : '#A187BE'
+    'red' : {
+      pastel_hue : '#F7977A',
+      hue : '#FF4843',
+      type : 'primary',
+      combinations : {
+        'blue' : 'purple',
+        'yellow' : 'orange'
+      }
+    },
+    'blue' : {
+      pastel_hue : '#8493CA',
+      hue : '#328BDC',
+      type : 'primary',
+      combinations : {
+        'yellow' : 'green',
+        'red' : 'purple'
+      }
+    },
+    'yellow' : {
+      pastel_hue : '#FFF79A',
+      hue : '#FBFF93',
+      type : 'primary',
+      combinations : {
+        'red' : 'orange',
+        'blue' : 'green'
+      }
+    },
+    'green' : {
+      pastel_hue : '#82CA9D',
+      hue : '#79C975',
+      type : 'secondary'
+    },
+    'orange' : {
+        pastel_hue :'#F9AD81',
+        hue : '#FFBF43',
+        type : 'secondary'
+    },
+    'purple' : {
+      pastel_hue : '#A187BE',
+      hue : '#6A3072',
+      type : 'secondary'
+    }
   };
+
+  var colorArray = [];
+
+  _.each(colors, function(value, key){
+    if(value.type == 'primary'){
+      colorArray.push.apply(colorArray, _.times(2, _.constant(value)));
+    }else{
+      colorArray.push(value);
+    }
+  });
+
+
 
   var firstSelected = false;
 
-  console.log(colors);
 
   var NUM_CELLS_PER_ROW = 5;
   var grid = [];
@@ -23,8 +70,7 @@ var hs = {};
   };
 
   var getRandomColor = function(){
-    var key = _.keys(colors)[getRandomNum(_.keys(colors).length)];
-    return colors[key];
+    return colorArray[getRandomNum(colorArray.length)];
   };
 
   hs.setupGrid = function(){
@@ -51,7 +97,7 @@ var hs = {};
       $(this)
       .children("div.block")
       .css('background-color', function(blockIndex){
-        return grid[index][blockIndex];
+        return grid[index][blockIndex]['hue'];
       });
     });
   }
@@ -70,19 +116,36 @@ var hs = {};
     }
   }
 
-  hs.bindEvents = function(){
-    $("div.block").on('click', function(e){
-      if(!firstSelected){
-          $("div.block").removeClass('first');
-          $(this).addClass('first');
-          firstSelected = true;
-      }else{
-        var areContig = hs.areBlocksContiguous($("div.block.first"), $(this));
+  hs.handleClick = function(){
+    if(!firstSelected){
+        $("div.block").removeClass('first');
+        $(this).addClass('first');
+        firstSelected = true;
+    }else{
+      var $first = $("div.block.first"),
+          $second = $(this);
 
-        console.log("are contig : " + areContig);
+      var areContig = hs.areBlocksContiguous($first, $second);
+      console.log("are contig : " + areContig);
+      if(areContig){
+        hs.combine($first, $second);
+      }else{
+        //if not contig then reset first
+        firstSelected = false;
+        hs.handleClick.call(this);
       }
-    });
-  }
+    }
+  };
+
+  hs.bindEvents = function(){
+    $("div.block").on('click', hs.handleClick);
+  };
+
+  hs.combine = function($from, $to){
+
+
+  };
+
 }());
 
 $().ready(function(){
