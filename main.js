@@ -4,6 +4,9 @@ jQuery.fn.reverse = function() {
     return this.pushStack(this.get().reverse(), arguments);
 };
 
+// TODO : change to just put the class name of the color instead
+// of the background color
+
 //http://www.sitepoint.com/javascript-generate-lighter-darker-color/
 function ColorLuminance(hex, lum) {
 
@@ -77,6 +80,9 @@ function ColorLuminance(hex, lum) {
     }
   };
 
+  var all_colors = _.keys(colors),
+      all_color_classes = all_colors.join(' ');
+
   var colorArray = _.flatten(_.map(colors, function(value, key){
     value = _.extend(value, {'name' : key});
 
@@ -144,18 +150,106 @@ function ColorLuminance(hex, lum) {
     }
   };
 
-  hs.checkRowsForEmptyCells = function(){
-    hs.checkHorizontal();
-    hs.checkVertical();
+  hs.checkForMatches = function(){
+
+    //start top left
+    //seen = two dimensional array of checked
+    var grid = hs.buildGrid();
+    console.log(grid);
+    var seen = [];
+    for(var i = 0; i < grid.length; i++){
+      seen[i] = [];
+      for(var j = 0; j < grid[i].length; j++){
+        seen[i][j] = false;
+      }
+    }
+
+
+    var count = hs.checkFromIndex(grid, seen, 0, 0);
+
+    console.log("matched " + count);
+
+    if(count > 2){
+      $(".checked").css('background-color', 'black');
+    }
+
+    console.log(seen);
+    console.log(hs.nextUnseen(seen));
 
   };
 
-  hs.checkHorizontal = function(){
+  hs.nextUnseen = function(seenArr){
+    for(var i = 0; i < seenArr.length; i++ ){
+        for(var j = 0; j < seenArr[i].length; j++ ){
+          if(seenArr[i][j] === false){
+            return {row : i, col : j};
+          }
+        }
+    }
+  };
+
+  hs.checkFromIndex = function(grid, seen, row, col, color, count){
+    var $currentNode = $(grid[row][col]),
+        currentColor = $currentNode.attr("data-color");
+
+        console.log($currentNode);
+        console.log("prev color : " + color);
+        console.log("node color : " + currentColor);
+
+    if(count == undefined){
+      count = 1;
+    }
+
+    if(color != undefined){
+      if(color == currentColor){
+        console.log("match at " + row + " : " + col);
+        $currentNode.addClass("checked");
+        count++;
+      }else{
+        console.log("no match");
+        return 0;
+      }
+    }else{
+      color = currentColor;
+      $currentNode.addClass("checked");
+    }
+
+    seen[row][col] = true;
+
+    console.log("now checking row " + row + " and col " + col);
+
+    if(seen[row-1] && seen[row-1][col] === false){
+      //checktop
+      console.log('check top');
+      count += hs.checkFromIndex(grid, seen, row - 1, col, color, count);
+    }
+
+    if(seen[row][col - 1] === false){
+      //check left
+      console.log('check left');
+      count += hs.checkFromIndex(grid, seen, row, col - 1, color, count);
+    }
+
+    if(seen[row][col + 1] === false){
+        //check right
+      count +=   hs.checkFromIndex(grid, seen, row, col + 1, color);
+        console.log('check right');
+    }
+    if(seen[row + 1] && seen[row + 1][col] === false){
+      //check bottom
+      count += hs.checkFromIndex(grid, seen, row + 1, col, color, count);
+
+      console.log('check bottom');
+
+    }
+    return count;
 
   };
 
-  hs.checkVertical = function(){
-
+  hs.buildGrid = function(){
+    return $('li').map(function(){
+      return $(this).children('.block');
+    });
   };
 
   hs.fillInRows = function(){
@@ -194,7 +288,8 @@ function ColorLuminance(hex, lum) {
 
   hs.colorCell = function($cell, color){
     $cell
-    .css('background-color', color.hue)
+    .removeClass(all_color_classes)
+    .addClass(color.name)
     .css('border-color', hs.getDarker(color.hue))
     .attr('data-color', color.name);
   };
@@ -216,11 +311,19 @@ function ColorLuminance(hex, lum) {
       var $first = $("div.block.first"),
           $second = $(this);
 
-      var areContig = hs.areBlocksContiguous($first, $second);
+
+      var areContig = hs.areBlocksContiguous($first, $second),
+          areEqual = $first.get(0) == $second.get(0);
+
       console.log("are contig : " + areContig);
+      console.log("are equal : " + areEqual);
+
       if(areContig){
         hs.combine($first, $second);
         hs.fillInRows();
+      }else if(areEqual){
+        $("div.block").removeClass('first');
+        firstSelected = false;
       }else{
         //if not contig then reset first
         firstSelected = false;
@@ -285,4 +388,5 @@ $().ready(function(){
   hs.drawGrid();
   hs.fillGridWithColor();
   hs.bindEvents();
+  hs.checkForMatches();
 });

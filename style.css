@@ -15,6 +15,9 @@ body {
   width:50px;
   cursor:pointer;
   border-radius:7px;
+  background-image: url('ov.png');
+  background-position: top left;
+  background-repeat: repeat-x;
 }
 
 .block:hover {
@@ -26,6 +29,33 @@ body {
 }
 
 .block.first {
-  border-color:#000;
-  box-shadow:0px 6px 6px white;
+  box-shadow:0px 0px 0px 3px #555
+}
+
+.block.checked {
+  border:2px solid green !important;
+}
+
+.red {
+  background-color : #FF4843;
+}
+
+.blue {
+  background-color : #328BDC;
+}
+
+.yellow {
+  background-color : #FBFF93;
+}
+
+.green {
+  background-color : #79C975;
+}
+
+.orange {
+    background-color : #FFBF43;
+}
+
+.purple {
+  background-color : #6A3072;
 }
